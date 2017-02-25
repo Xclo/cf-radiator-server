@@ -14,11 +14,6 @@ module.exports = function (express) {
     router.use(bodyParser.json());
     router.use(bodyParser.urlencoded({extended: false}));
 
-    var cookieName = "psl_session";
-    //TODO: Move to config file
-    var cookieSecret = "secret";
-    router.use(cookieParser(cookieSecret));
-
     function nocache(req, res, next) {
         res.header('Cache-Control', 'private, no-cache, no-store, must-revalidate');
         res.header('Expires', '-1');
@@ -33,62 +28,6 @@ module.exports = function (express) {
         res.render('login/login.jade');
     });
 
-
-    router.get('/auto', function (req, res) {
-        console.log("GET /autologin");
-        var sessionToken = req.query.token;
-
-
-        var endpoint = "https://api.run.pivotal.io";
-        var username = "jose-antonio.mesa@atos.net";
-        var password = "ari123654";
-        var back = {
-            path:"/auth/",
-            text:"Login"
-        }
-        /* */
-        Login.requestAdminToken().then(function(adminToken) {
-            console.log("adminToken -->" + adminToken);
-            if (adminToken != null) {
-                Login.validateToken(sessionToken, adminToken).then(function (validSession) {
-                    console.log("validSession -->" + validSession);
-                    if (validSession) {
-                        Login.auth(endpoint, username, password).then(function (result) {
-                            console.log("Authentication process: Success");
-                            //console.log(result);
-                            var cookieValue = {
-                                endpoint: endpoint,
-                                username: username,
-                                password: password
-                            };
-                            res.cookie(cookieName, JSON.stringify(cookieValue), {expires: 0, httpOnly: true});
-                                console.log("Redirect to /home")
-                                res.redirect('/home');
-                        }).catch(function (reason) {
-                            //Parse output to detect "unauthorized" case
-                            try {
-                                var result = JSON.parse(reason);
-                                if (result.error === "unauthorized") {
-                                    res.render('global/globalError', {pageData: {error: result.error, back:back}});
-                                } else {
-                                    res.render('global/globalError', {pageData: {error: result, back:back}});
-                                }
-                            //Endpoint case
-                            } catch (error) {
-                                res.render('global/globalError', {pageData: {error: reason, back:back}});
-                            }
-                        //Others
-                        }).catch(function (reason) {
-                            res.render('global/globalError', {pageData: {error: reason, back:back}});
-                        });
-                    } else {
-                        res.render('global/globalError', {pageData: {back:back}});
-                    }
-                });
-            }
-        });
-    });
-
     router.post('/login', function (req, res) {
 
         console.log("POST /login");
@@ -97,33 +36,24 @@ module.exports = function (express) {
         var username = req.body.username;
         var password = req.body.password;
 
-        console.log("CC Endpoint: " + endpoint);
-        console.log("Username: " + username);
-        console.log("Password: " + password);
-
         var back = {
             path:"/auth/",
             text:"Login"
         }
 
         Login.auth(endpoint, username, password).then(function (result) {
-            console.log("Authentication process: Success");
-            //console.log(result);
-            var cookieValue = {
-                endpoint: endpoint,
-                username: username,
-                password: password
-            };
-            res.cookie(cookieName, JSON.stringify(cookieValue), {expires: 0, httpOnly: true});
-
-            console.log("Redirect to /home")
-            //res.json({cookieName, cookieValue});
-            res.redirect('/home');
+          let session = req.session;
+          // session.authToken = result;
+          session.endpoint = endpoint;
+          session.username = username;
+          session.password = password;
+          res.redirect('/');
         }).catch(function (reason) {
 
             //Parse output to detect "unauthorized" case
             try{
                 var result = JSON.parse(reason);
+                console.log(result);
                 if(result.error === "unauthorized"){
                     res.render('global/globalError', {pageData: {error: result.error, back:back}});
                 }else {
@@ -144,8 +74,8 @@ module.exports = function (express) {
 
         console.log("GET /logout");
 
-        res.clearCookie(cookieName);
-        res.redirect('/auth');
+        req.session.destroy();
+        res.redirect('/');
     });
 
     return router;

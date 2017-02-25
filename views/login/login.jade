@@ -23,9 +23,9 @@ block bodyScripts
             endpoint = String(endpoint).toLowerCase()
             var username = $("#username").val();
             var password = $("#password").val();
-            
+
             var endpoint_regex = /^(http|https)/;
-            var username_regex = /^[a-zA-Z0-9.@-]{5,35}$/;
+            var username_regex = /^[a-zA-Z0-9.@-%\*!]{5,35}$/;
 
             if (endpoint.match(endpoint_regex)) {
                 if (username.match(username_regex) !== null) {
@@ -39,7 +39,7 @@ block bodyScripts
                 }else {
                     alert("Username format is not correct.\nPattern: [a-zA-Z0-9.@/-]{5,35}");
                     $("#username").val("");
-                    $("#username").focus();                    
+                    $("#username").focus();
                 }
             } else {
                 alert("Define a right CC endpoint.");
