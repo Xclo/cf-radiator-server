@@ -5,11 +5,11 @@ var express = require('express');
 var app = express();
 var http = require('http').Server(app);
 var session = require('express-session');
-var RedisStore = require('connect-redis')(session);
+// var RedisStore = require('connect-redis')(session);
 
 //REST API
 var sess = {
-    store: new RedisStore({}),
+    // store: new RedisStore({}),
     secret: 'O16OkF1Yv@aINL4Y6b5MnhYUA0q30R6MZu5@#abBo^n6oFAIh5',
     resave: false,
     saveUninitialized: true
