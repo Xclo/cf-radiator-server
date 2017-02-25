@@ -131,7 +131,7 @@ module.exports = function (express) {
                 } else {
                   resolve(null);
                 }
-              }).catch(function (err) {
+              }).catch((err) => {
                 resolve(null);
               });
             });
@@ -148,6 +148,12 @@ module.exports = function (express) {
             let healthPromise = new Promise((resolve, reject) => {
               rp(app.app.url).then((resp) => {
                 app.app.healthy = true;
+                try {
+                    app.app.health = JSON.parse(resp);
+                } catch (e) {
+
+                }
+
                 resolve(app);
               }).catch(() => {
                 app.app.healthy = false;
