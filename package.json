@@ -1,44 +1,33 @@
 {
   "name": "cf-nodejs-dashboard",
   "version": "0.0.1",
-  "description": "A web application to manage Cloud Foundry",
+  "description": "A web application to monitor Cloud Foundry",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
     "test": "mocha test"
   },
-  "keywords": [
-    "cloud",
-    "foundry",
-    "cloudfoundry",
-    "cf"
-  ],
   "engines": {
     "node": "7.5.0",
     "npm": "4.1.2"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/prosociallearnEU/cf-nodejs-dashboard.git"
+    "url": "git+https://github.com/bbyers-pivotal/cf-nodejs-dashboard.git"
   },
-  "author": "Juan Antonio Breña Moral <bren@juanantonio.info> (http://www.juanantonio.info)",
+  "author": "Brian Byers <bbyers@pivotal.io>, Rajesh Jain <rjain@pivotal.io>",
   "license": "Apache-2.0",
   "dependencies": {
     "async": "^2.1.5",
+    "axios": "^0.16.1",
     "body-parser": "1.14.1",
     "bootstrap": "3.3.5",
     "cf-nodejs-client": "https://github.com/prosociallearnEU/cf-nodejs-client.git#v0.13.0",
-    "connect-redis": "^3.2.0",
-    "cookie-parser": "1.4.0",
     "dropzone": "4.2.0",
     "express": "4.13.3",
-    "express-session": "^1.15.1",
-    "jade": "1.11.0",
-    "jquery": "2.1.4",
     "lodash": "^4.17.4",
     "multer": "1.1.0",
     "node-fetch": "^1.6.3",
-    "request": "^2.79.0",
     "request-promise": "^4.1.1"
   },
   "devDependencies": {
