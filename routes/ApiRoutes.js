@@ -151,10 +151,82 @@ module.exports = function (express) {
   }
 
   router.get('/stub/apps', (req, res) => {
-    res.json({
-
+    res.json(
+    {
+      "apps" : [
+        {
+          name: 'Google',
+          url: 'https://google.com',
+          guid: 1
+        },
+        {
+          name: 'Yahoo',
+          url: 'https://yahoo.com',
+          guid: 2
+        },
+        {
+          name: 'Microsoft',
+          url: 'https://microsoft.com',
+          guid: 3
+        },
+        {
+          name: 'Github',
+          url: 'https://github.com',
+          guid: 4
+        },
+        {
+          name: 'Twitter',
+          url: 'https://twitter.com',
+          guid: 5
+        },
+        {
+          name: 'Facebook',
+          url: 'https://facebook.com',
+          guid: 6
+        }
+      ]
     });
   });
+
+
+
+    router.get('/stub/app/:guid', (req, res) => {
+      res.json(
+        {
+          name: 'Google',
+          url: 'https://google.com',
+          guid: 1,
+          appInfo: {
+            buildpack: 'java',
+            staged:'25-Apr-2017',
+            org: 'Pivotal',
+            space: 'Dev',
+            services: [
+              {
+                serviceInstance: 'a-redis',
+                serviceName: 'Redis',
+                plan: 'shared'
+              },
+              {
+                serviceInstance: 'a-mySql',
+                serviceName: 'MySql',
+                plan: '100MB'
+              }
+            ]
+          },
+          health: {
+            status: 'UP'
+          },
+          metrics: {
+            disk: '100 MB',
+            cpu: '70%',
+            tps: '100'
+          }
+        });
+    });
+
+
+
 
   function getAppSummaries(api, authorization, apps) {
     return new Promise((resolve, reject) => {
