@@ -1,82 +1,69 @@
 /*jslint node: true*/
-"use strict"
+"use strict";
 
-var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
+const async = require('async');
+const Promise = require('bluebird');
+const _ = require('lodash');
+const axios = require('axios');
 
-//Routes
+// var CloudController = require("cf-nodejs-client").CloudController;
+// var CloudFoundryOrgs = require("cf-nodejs-client").Organizations;
+// var CloudFoundrySpaces = require("cf-nodejs-client").Spaces;
+// var CloudFoundryApps = require("cf-nodejs-client").Apps;
+// CloudController = new CloudController();
+// CloudFoundryOrgs = new CloudFoundryOrgs();
+// CloudFoundrySpaces = new CloudFoundrySpaces();
+// CloudFoundryApps = new CloudFoundryApps();
+
+const CF = require("../services/CloudFoundry");
+const CloudFoundry = new CF();
+
 var Login = require('../services/Login');
 Login = new Login();
 
+
 module.exports = function (express) {
 
-    var router = express.Router();
-    router.use(bodyParser.json());
-    router.use(bodyParser.urlencoded({extended: false}));
+  var router = express.Router();
+  router.use(bodyParser.json());
+  router.use(bodyParser.urlencoded({ extended: false }));// parse application/x-www-form-urlencoded
 
-    function nocache(req, res, next) {
-        res.header('Cache-Control', 'private, no-cache, no-store, must-revalidate');
-        res.header('Expires', '-1');
-        res.header('Pragma', 'no-cache');
-        next();
+  router.post('/login', (req, res) => {
+
+    const username = req.body.username;
+    const password = req.body.password;
+    const api = req.body.api;
+
+    if (!username || !password || !api) {
+      res.status(400).send("Missing username, password or api endpoint");
+      return;
     }
 
-    router.get('/', nocache, function (req, res) {
-
-        console.log("GET /auth/login");
-
-        res.render('login/login.jade');
+    Login.auth(api, username, password).then(function (result) {
+      res.json(result);
+    }).catch((error) => {
+      console.log(error);
+      res.send(error);
     });
+  });
 
-    router.post('/login', function (req, res) {
+  router.post('/refreshToken', (req, res) => {
+    const refreshToken = req.body.refresh_token;
+    const api = req.body.api;
 
-        console.log("POST /login");
+    if (!refreshToken || !api) {
+      res.status(400).send("Missing refresh token or api endpoint");
+      return;
+    }
 
-        var endpoint = req.body.endpoint;
-        var username = req.body.username;
-        var password = req.body.password;
-
-        var back = {
-            path:"/auth/",
-            text:"Login"
-        }
-
-        Login.auth(endpoint, username, password).then(function (result) {
-          let session = req.session;
-          // session.authToken = result;
-          session.endpoint = endpoint;
-          session.username = username;
-          session.password = password;
-          res.redirect('/');
-        }).catch(function (reason) {
-
-            //Parse output to detect "unauthorized" case
-            try{
-                var result = JSON.parse(reason);
-                console.log(result);
-                if(result.error === "unauthorized"){
-                    res.render('global/globalError', {pageData: {error: result.error, back:back}});
-                }else {
-                    res.render('global/globalError', {pageData: {error: result, back:back}});
-                }
-            //Endpoint case
-            }catch (error) {
-                res.render('global/globalError', {pageData: {error: reason, back:back}});
-            }
-
-        //Others
-        }).catch(function (reason) {
-            res.render('global/globalError', {pageData: {error: reason, back:back}});
-        });
+    Login.refresh(api, refreshToken).then(function (result) {
+      res.json(result);
+    }).catch((error) => {
+      console.log(error);
+      res.send(error);
     });
+  });
 
-    router.get('/logout', nocache, function (req, res) {
-
-        console.log("GET /logout");
-
-        req.session.destroy();
-        res.redirect('/');
-    });
-
-    return router;
+  return router;
 };
