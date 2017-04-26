@@ -11,6 +11,12 @@ var http = require('http').Server(app);
 //   sess.cookie.secure = true // serve secure cookies
 // }
 
+app.use(function(req, res, next) {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  next();
+});
+
 app.use('/api/auth/', require('./routes/LoginRoutes')(express));
 app.use('/api/', require('./routes/ApiRoutes')(express));
 
