@@ -6,18 +6,9 @@ const async = require('async');
 const Promise = require('bluebird');
 const _ = require('lodash');
 const axios = require('axios');
-
-// var CloudController = require("cf-nodejs-client").CloudController;
-// var CloudFoundryOrgs = require("cf-nodejs-client").Organizations;
-// var CloudFoundrySpaces = require("cf-nodejs-client").Spaces;
-// var CloudFoundryApps = require("cf-nodejs-client").Apps;
-// CloudController = new CloudController();
-// CloudFoundryOrgs = new CloudFoundryOrgs();
-// CloudFoundrySpaces = new CloudFoundrySpaces();
-// CloudFoundryApps = new CloudFoundryApps();
-
 const CF = require("../services/CloudFoundry");
 const CloudFoundry = new CF();
+const config = require('../config');
 
 var Login = require('../services/Login');
 Login = new Login();
@@ -28,84 +19,6 @@ module.exports = function (express) {
   var router = express.Router();
   router.use(bodyParser.json());
   router.use(bodyParser.urlencoded({ extended: false }));// parse application/x-www-form-urlencoded
-
-  function loggedIn(req, res, next) {
-    if (req.session.username === undefined) {
-      res.redirect('/auth');
-      return;
-    } else {
-      next();
-    }
-  }
-
-  router.get('/', loggedIn, function (req, res) {
-    let session = req.session;
-    Login.auth(session.endpoint, session.username, session.password).then(function (result) {
-      let token = {
-        token_type: result.token_type,
-        access_token: result.access_token
-      }
-      console.log(token);
-
-      CloudFoundryOrgs.setEndPoint(session.endpoint);
-      CloudFoundrySpaces.setEndPoint(session.endpoint);
-      CloudFoundryApps.setEndPoint(session.endpoint);
-      CloudFoundryOrgs.setToken(token);
-      CloudFoundrySpaces.setToken(token);
-      CloudFoundryApps.setToken(token);
-
-      CloudFoundryOrgs.getOrganizations().then((orgs) => {
-        return getOrgs(orgs);
-      }).then((orgs) => {
-        return getSpaces(orgs).then((orgs) => {
-          return getAppInfo(orgs);
-        });
-      }).then((apps) => {
-        return getHealthURLs(apps);
-      }).then((apps) => {
-        return performHealthCheck(apps);
-      }).then((apps) => {
-        res.json(apps);
-      });
-    });
-
-	});
-
-  router.post('/api/login', (req, res) => {
-
-    const username = req.body.username;
-    const password = req.body.password;
-    const api = req.body.api;
-
-    if (!username || !password || !api) {
-      res.status(400).send("Missing username, password or api endpoint");
-      return;
-    }
-
-    Login.auth(api, username, password).then(function (result) {
-      res.json(result);
-    }).catch((error) => {
-      console.log(error);
-      res.send(error);
-    });
-  });
-
-  router.post('/api/refreshToken', (req, res) => {
-    const refreshToken = req.body.refresh_token;
-    const api = req.body.api;
-
-    if (!refreshToken || !api) {
-      res.status(400).send("Missing refresh token or api endpoint");
-      return;
-    }
-
-    Login.refresh(api, refreshToken).then(function (result) {
-      res.json(result);
-    }).catch((error) => {
-      console.log(error);
-      res.send(error);
-    });
-  });
 
   router.get('/apps', validateApiToken, (req, res) => {
     const api = req.api;
@@ -149,6 +62,10 @@ module.exports = function (express) {
     }
 
   }
+
+  router.get('/foundations', (req, res) => {
+    res.json(config.foundations);
+  });
 
   router.get('/stub/apps', (req, res) => {
     res.json(

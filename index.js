@@ -4,6 +4,11 @@
 var express = require('express');
 var app = express();
 var http = require('http').Server(app);
+const config = require('./config');
+
+if (config.skipSSLValidation) {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+}
 
 //REST API
 // if (app.get('env') === 'production') {
