@@ -200,6 +200,7 @@ module.exports = function (express) {
       CloudFoundry.getApps(api, token).then((response) => {
         let apps = response.data.resources.map((app) => {
           return {
+            api: api,
             metadata: app.metadata,
             name: app.entity.name,
             buildpack: app.entity.buildpack,
