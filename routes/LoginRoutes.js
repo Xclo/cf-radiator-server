@@ -7,15 +7,6 @@ const Promise = require('bluebird');
 const _ = require('lodash');
 const axios = require('axios');
 
-// var CloudController = require("cf-nodejs-client").CloudController;
-// var CloudFoundryOrgs = require("cf-nodejs-client").Organizations;
-// var CloudFoundrySpaces = require("cf-nodejs-client").Spaces;
-// var CloudFoundryApps = require("cf-nodejs-client").Apps;
-// CloudController = new CloudController();
-// CloudFoundryOrgs = new CloudFoundryOrgs();
-// CloudFoundrySpaces = new CloudFoundrySpaces();
-// CloudFoundryApps = new CloudFoundryApps();
-
 const CF = require("../services/CloudFoundry");
 const CloudFoundry = new CF();
 

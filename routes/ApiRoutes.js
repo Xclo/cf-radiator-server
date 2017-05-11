@@ -8,7 +8,6 @@ const _ = require('lodash');
 const axios = require('axios');
 const CF = require("../services/CloudFoundry");
 const CloudFoundry = new CF();
-const config = require('../config');
 
 var Login = require('../services/Login');
 Login = new Login();
@@ -62,49 +61,6 @@ module.exports = function (express) {
     }
 
   }
-
-  router.get('/foundations', (req, res) => {
-    res.json(config.foundations);
-  });
-
-  router.get('/stub/apps', (req, res) => {
-    res.json(
-    {
-      "apps" : [
-        {
-          name: 'Google',
-          url: 'https://google.com',
-          guid: 1
-        },
-        {
-          name: 'Yahoo',
-          url: 'https://yahoo.com',
-          guid: 2
-        },
-        {
-          name: 'Microsoft',
-          url: 'https://microsoft.com',
-          guid: 3
-        },
-        {
-          name: 'Github',
-          url: 'https://github.com',
-          guid: 4
-        },
-        {
-          name: 'Twitter',
-          url: 'https://twitter.com',
-          guid: 5
-        },
-        {
-          name: 'Facebook',
-          url: 'https://facebook.com',
-          guid: 6
-        }
-      ]
-    });
-  });
-
 
 
     router.get('/stub/app/:guid', (req, res) => {
