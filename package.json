@@ -35,6 +35,7 @@
     "nconf": "^0.8.4",
     "node-fetch": "^1.6.3",
     "request-promise": "^4.2.0",
+    "socket.io": "^2.0.1",
     "zombie": "^5.0.5"
   },
   "devDependencies": {

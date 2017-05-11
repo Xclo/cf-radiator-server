@@ -3,8 +3,10 @@
 
 var express = require('express');
 var app = express();
-var http = require('http').Server(app);
+var server = require('http').Server(app);
 const config = require('./config');
+
+var io = require('socket.io')(server);
 
 if (config.skipSSLValidation) {
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
@@ -28,6 +30,14 @@ app.use('/api/', require('./routes/ApiRoutes')(express));
 //Server
 console.log("PORT " + process.env.PORT) // Diego
 var localPort = process.env.PORT || 5000;
-http.listen(localPort, function () {
+server.listen(localPort, function () {
     console.log('Listening on *:' + localPort);
+});
+
+io.on('connection', function (socket) {
+  socket.emit('news', { hello: 'world' });
+  socket.on('SendMessage', function (data) {
+    io.emit('Send the Message');
+    console.log(data);
+  });
 });
