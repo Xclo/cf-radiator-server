@@ -5,6 +5,7 @@ var express = require('express');
 var app = express();
 var server = require('http').Server(app);
 const config = require('./config');
+var  clientActions = require('./actions/clientActions');
 
 var io = require('socket.io')(server);
 
@@ -34,10 +35,20 @@ server.listen(localPort, function () {
     console.log('Listening on *:' + localPort);
 });
 
-io.on('connection', function (socket) {
-  socket.emit('news', { hello: 'world' });
-  socket.on('SendMessage', function (data) {
-    io.emit('Send the Message');
-    console.log(data);
-  });
+io.on('connection', function (socket)
+{
+  socket.on("action", function (action) {
+    switch (action.type) {
+      case "FETCH_FOUNDATIONS_FULFILLED":
+      {
+          console.log(action);
+          io.emit('logged in' + action, clientActions.dispatchClientAction(action));
+      }
+      default:
+      {
+        console.log(action);
+        io.emit('default',clientActions.dispatchClientAction(action))
+      }
+    }
+  })
 });
