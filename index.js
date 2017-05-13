@@ -42,12 +42,12 @@ io.on('connection', function (socket)
       case "FETCH_FOUNDATIONS_FULFILLED":
       {
           console.log(action);
-          io.emit('logged in' + action, clientActions.dispatchClientAction(action));
+          io.emit('logged in' + action, {type:'message', data:'good day!'});
       }
       default:
       {
         console.log(action);
-        io.emit('default',clientActions.dispatchClientAction(action))
+        io.emit('default',{type:'message', data:'good day!'})
       }
     }
   })
