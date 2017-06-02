@@ -22,11 +22,12 @@ module.exports = function (express) {
   router.get('/apps', validateApiToken, (req, res) => {
     const api = req.api;
     const authorization = req.authorization;
+    //const filter = req.q;
+    const filter = "name:canary-java";
 
-    getApps(api, authorization).then((apps) => {
+    getApps(api, authorization,filter).then((apps) => {
       return getAppSummaries(api, authorization, apps);
     }).then((apps) => {
-      // console.log(apps);
       res.json(apps);
     }).catch((error) => {
       handleError(res, error);
@@ -34,7 +35,15 @@ module.exports = function (express) {
 	});
 
   router.get('/apps/:guid/health', validateApiToken, (req, res) => {
-
+    const api = req.api;
+    const authorization = req.authorization;
+    getHealthURL(api,authorization).then((app) => {
+      return performHealthCheck(api,authorization,app);
+    }).then((app) => {
+      res.json(app);
+    }).catch ((error) => {
+      handleError(res.error);
+    });
   });
 
   function validateApiToken(req, res, next) {
@@ -151,9 +160,9 @@ module.exports = function (express) {
   }
 
 
-  function getApps(api, token) {
+  function getApps(api, token,filter) {
     return new Promise((resolve, reject) => {
-      CloudFoundry.getApps(api, token).then((response) => {
+      CloudFoundry.getApps(api, token,filter).then((response) => {
         let apps = response.data.resources.map((app) => {
           return {
             api: api,
@@ -246,6 +255,51 @@ module.exports = function (express) {
     });
   }
 
+  const getHealthURL = (app) => {
+    return new Promise((resolve, reject) => {
+      let appPromise = new Promise((resolve, reject) => {
+        CloudFoundryApps.getStats(app.app.guid).then(function(result) {
+          if (result["0"].state === "RUNNING") {
+            var url = "http://" + result["0"].stats.uris[0];
+            app.app.url = url + '/health';
+            resolve(app);
+          } else {
+            resolve(null);
+          }
+        }).catch((err) => {
+          resolve(null);
+        });
+      });
+      Promise.all(appPromise).then((app) => {
+        resolve(_.without(app, null));
+      })
+    });
+  }
+
+
+  const performHealthCheck = (app) => {
+    return new Promise((resolve, reject) => {
+      let healthPromise = new Promise((resolve, reject) => {
+        axios(app.app.url).then((resp) => {
+          app.app.healthy = true;
+          try {
+              app.app.health = JSON.parse(resp);
+          } catch (e) {
+
+          }
+          resolve(app);
+        }).catch(() => {
+          app.app.healthy = false;
+          resolve(app);
+        })
+      })
+      Promise.all(healthPromise).then((app) => {
+        resolve(app);
+      })
+    });
+  }
+
+
   const getHealthURLs = (apps) => {
     return new Promise((resolve, reject) => {
       var appPromises = [];
@@ -271,7 +325,7 @@ module.exports = function (express) {
     });
   }
 
-  const performHealthCheck = (apps) => {
+  const performHealthChecks = (apps) => {
     return new Promise((resolve, reject) => {
       var healthPromises = [];
       apps.forEach((app) => {

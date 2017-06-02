@@ -13,16 +13,16 @@ CloudFoundry.prototype.getApps = (api, authorization, filter) => {
   const url = `${api}/v2/apps`;
   let qs = {};
 
+  console.log("Query String Filter: " + filter)
   if (filter) {
     qs = filter;
   }
   const options = {
     method: "GET",
-    url: url,
+    url: url + "?q=" + qs,
     headers: {
       Authorization: `${authorization}`
     },
-    qs: qs,
     validateStatus: (status) => {
       return status === 200
     }
@@ -45,7 +45,7 @@ CloudFoundry.prototype.getAppSummary = (api, authorization, guid, filter) => {
     headers: {
       Authorization: `${authorization}`
     },
-    qs: qs,
+    q: qs,
     validateStatus: (status) => {
       return status === 200
     }
