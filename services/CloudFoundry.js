@@ -11,7 +11,10 @@ function CloudFoundry() {
 CloudFoundry.prototype.getApps = (api, authorization, filter) => {
 
   const url = `${api}/v2/apps`;
-  let qs = {};
+  // let qs = {
+    // "results-per-page": 200
+  // };
+  let qs = ''
 
   console.log("Query String Filter: " + filter)
   if (filter) {
@@ -19,7 +22,7 @@ CloudFoundry.prototype.getApps = (api, authorization, filter) => {
   }
   const options = {
     method: "GET",
-    url: url + "?q=" + qs,
+    url: `${url}?order-direction=asc&results-per-page=100${qs}`,
     headers: {
       Authorization: `${authorization}`
     },

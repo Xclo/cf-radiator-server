@@ -23,9 +23,10 @@ module.exports = function (express) {
     const api = req.api;
     const authorization = req.authorization;
     //const filter = req.q;
-    const filter = "name:canary-java";
+    // const filter = "name:canary-java";
+    const filter = '';
 
-    getApps(api, authorization,filter).then((apps) => {
+    getApps(api, authorization).then((apps) => {
       return getAppSummaries(api, authorization, apps);
     }).then((apps) => {
       res.json(apps);
@@ -61,8 +62,8 @@ module.exports = function (express) {
   }
 
   function handleError(res, error) {
-    console.log(error);
-    console.log(error.response)
+    console.log('error', error);
+    console.log('error response', error.response)
     if (error.response && error.response.status === 401) {
         res.status(401).send("unauthorized");
     } else {
@@ -163,25 +164,56 @@ module.exports = function (express) {
   function getApps(api, token,filter) {
     return new Promise((resolve, reject) => {
       CloudFoundry.getApps(api, token,filter).then((response) => {
+
+        // console.log(response)
+
+
         let apps = response.data.resources.map((app) => {
-          return {
-            api: api,
-            metadata: app.metadata,
-            name: app.entity.name,
-            buildpack: app.entity.buildpack,
-            instances: app.entity.instances,
-            memory: app.entity.memory,
-            disk_quota: app.entity.disk_quota,
-            state: app.entity.state,
-            health_check_type: app.entity.health_check_type,
-            health_check_http_endpoint: app.entity.health_check_http_endpoint
-          }
+          return mapAppResponse(api, app)
         });
-        resolve(apps);
+
+        let appPromises = []
+        for (var page = 2; page <= response.data.total_pages; page++) {
+          let filter = `&page=${page}`
+          // console.log('page', filter)
+          appPromises.push(CloudFoundry.getApps(api, token,filter))
+        }
+
+        Promise.all(appPromises).then((responses) => {
+          // console.log('responses', responses)
+          responses.forEach((response) => {
+            // console.log(response);
+            let moreApps = response.data.resources.map((app) => {
+              return mapAppResponse(api, app)
+            });
+            // console.log('more apps', moreApps)
+            apps = apps.concat(moreApps);
+          })
+
+          // console.log('# of apps', apps.length);
+          // resolve(_.flattenDeep(apps))
+          resolve(apps);
+        });
+
       }).catch((error) => {
         reject(error);
       });
     });
+  }
+
+  const mapAppResponse = (api, app) => {
+    return {
+      api: api,
+      metadata: app.metadata,
+      name: app.entity.name,
+      buildpack: app.entity.buildpack,
+      instances: app.entity.instances,
+      memory: app.entity.memory,
+      disk_quota: app.entity.disk_quota,
+      state: app.entity.state,
+      health_check_type: app.entity.health_check_type,
+      health_check_http_endpoint: app.entity.health_check_http_endpoint
+    }
   }
 
   const getOrgs = (orgs) => {
