@@ -56,6 +56,39 @@ CloudFoundry.prototype.getAppSummary = (api, authorization, guid, filter) => {
   return axios(options);
 }
 
+CloudFoundry.prototype.getOrgs = (api, authorization) => {
+  const url = `${api}/v2/organizations?order-direction=asc&results-per-page=100`;
+
+  const options = {
+    method: "GET",
+    url: url,
+    headers: {
+      Authorization: `${authorization}`
+    },
+    validateStatus: (status) => {
+      return status === 200
+    }
+  };
+  return axios(options);
+}
+
+
+CloudFoundry.prototype.getSpaces = (api, authorization, guid) => {
+  const url = `${api}/v2/organizations/${guid}/spaces`;
+
+  const options = {
+    method: "GET",
+    url: url,
+    headers: {
+      Authorization: `${authorization}`
+    },
+    validateStatus: (status) => {
+      return status === 200
+    }
+  };
+  return axios(options);
+}
+
 CloudFoundry.prototype.login = (api, username, password) => {
 
   const url = `${api}/oauth/token`;

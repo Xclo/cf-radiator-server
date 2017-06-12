@@ -12,6 +12,9 @@ const CloudFoundry = new CF();
 var Login = require('../services/Login');
 Login = new Login();
 
+var ORGS = {};
+var SPACES = {};
+
 
 module.exports = function (express) {
 
@@ -26,9 +29,30 @@ module.exports = function (express) {
     // const filter = "name:canary-java";
     const filter = '';
 
+
     getApps(api, authorization).then((apps) => {
       return getAppSummaries(api, authorization, apps);
     }).then((apps) => {
+      return getOrgsAndSpaces(api, authorization).then((orgs) => {
+        // console.log(orgs)
+        apps.forEach((app) => {
+          let orgSpace = _.find(orgs, {space_guid: app.space_guid});
+          // console.log(orgSpace);
+          app.org = {
+            guid: orgSpace.org_guid,
+            name: orgSpace.org_name
+          }
+
+          app.space = {
+            guid: orgSpace.space_guid,
+            name: orgSpace.space_name
+          }
+        })
+
+        return apps;
+      });
+    }).then((apps) => {
+      // console.log(apps)
       res.json(apps);
     }).catch((error) => {
       handleError(res, error);
@@ -72,42 +96,43 @@ module.exports = function (express) {
 
   }
 
-
-    router.get('/stub/app/:guid', (req, res) => {
-      res.json(
-        {
-          name: 'Google',
-          url: 'https://google.com',
-          guid: 1,
-          appInfo: {
-            buildpack: 'java',
-            staged:'25-Apr-2017',
-            org: 'Pivotal',
-            space: 'Dev',
-            services: [
-              {
-                serviceInstance: 'a-redis',
-                serviceName: 'Redis',
-                plan: 'shared'
-              },
-              {
-                serviceInstance: 'a-mySql',
-                serviceName: 'MySql',
-                plan: '100MB'
-              }
-            ]
-          },
-          health: {
-            status: 'UP'
-          },
-          metrics: {
-            disk: '100 MB',
-            cpu: '70%',
-            tps: '100'
+  function getOrgsAndSpaces(api, token) {
+    return new Promise((resolve, reject) => {
+      CloudFoundry.getOrgs(api, token).then((response) => {
+        // console.log(response.data.resources);
+        let orgs = []
+        response.data.resources.forEach((org) => {
+          let orgData = {
+            guid: org.metadata.guid,
+            name: org.entity.name
           }
+          orgs.push(orgData);
         });
-    });
 
+        let orgPromises = [];
+        orgs.forEach((org) => {
+          orgPromises.push(CloudFoundry.getSpaces(api, token, org.guid));
+        })
+
+        let orgsAndSpaces = [];
+        Promise.all(orgPromises).then((responses) => {
+          responses.forEach((response) => {
+            response.data.resources.forEach((space) => {
+              let org = _.find(orgs, {guid: space.entity.organization_guid})
+              let spaceData = {
+                space_guid: space.metadata.guid,
+                space_name: space.entity.name,
+                org_guid: org.guid,
+                org_name: org.name
+              }
+              orgsAndSpaces.push(spaceData)
+            });
+          });
+          resolve(orgsAndSpaces);
+        });
+      })
+    });
+  }
 
 
 
@@ -163,6 +188,7 @@ module.exports = function (express) {
 
   function getApps(api, token,filter) {
     return new Promise((resolve, reject) => {
+
       CloudFoundry.getApps(api, token,filter).then((response) => {
 
         // console.log(response)
@@ -179,19 +205,14 @@ module.exports = function (express) {
           appPromises.push(CloudFoundry.getApps(api, token,filter))
         }
 
+        //fetch rest of the apps
         Promise.all(appPromises).then((responses) => {
-          // console.log('responses', responses)
           responses.forEach((response) => {
-            // console.log(response);
             let moreApps = response.data.resources.map((app) => {
               return mapAppResponse(api, app)
             });
-            // console.log('more apps', moreApps)
             apps = apps.concat(moreApps);
           })
-
-          // console.log('# of apps', apps.length);
-          // resolve(_.flattenDeep(apps))
           resolve(apps);
         });
 
@@ -212,42 +233,84 @@ module.exports = function (express) {
       disk_quota: app.entity.disk_quota,
       state: app.entity.state,
       health_check_type: app.entity.health_check_type,
-      health_check_http_endpoint: app.entity.health_check_http_endpoint
+      health_check_http_endpoint: app.entity.health_check_http_endpoint,
+      package_updated_at: app.entity.package_updated_at,
+      space_guid: app.entity.space_guid
     }
   }
 
-  const getOrgs = (orgs) => {
-    return new Promise((resolve, reject) => {
-      async.map(orgs.resources, function(o, callback) {
-        callback(null, {
-          guid: o.metadata.guid,
-          name: o.entity.name,
-          spaces: []
-        })
-      }, function(err, orgs) {
-        resolve(orgs);
-      })
+  // GET /apps/:guid
+    router.get('/apps/:guid', validateApiToken, function (req, res) {
+        const api = req.api;
+        const authorization = req.authorization;
+
+        console.log("GET /apps/:guid");
+        var summary;
+
+        try {
+            var app_guid = req.params.guid;
+            console.log("app_guid: " + app_guid);
+            return CloudFoundry.getAppSummary(api,authorization, app_guid).then(function (response) {
+                let app = response.data
+                if (app.routes.length > 0) {
+                  app.route = `https://${response.data.routes[0].host}.${response.data.routes[0].domain.name}`
+                }
+                // console.log(app)
+
+                return app;
+            }).then(function (app) {
+                let url = `${app.route}/health`
+                axios.get(url).then((result) => {
+                  res.json({app: app, status: result.data})
+                  // console.log(app)
+                  console.log("The fetch result " + JSON.stringify(result.data));
+                  //return result;
+                }).catch (function (reason) {
+                  console.log(reason);
+                });
+            }).catch(function (reason) {
+                console.log(reason);
+                res.json({pageData: {error: reason}});
+            });
+
+        } catch (error){
+            handleError(res.error);
+
+        }
     });
-  }
 
-  const getSpaces = (orgs) => {
-    return new Promise((resolve, reject) => {
-      CloudFoundrySpaces.getSpaces().then(function(spaces) {
-        spaces.resources.forEach((space) => {
-          let org = orgs.find(function(o) {
-            return o.guid === space.entity.organization_guid
-          });
+  // const getOrgs = (orgs) => {
+  //   return new Promise((resolve, reject) => {
+  //     async.map(orgs.resources, function(o, callback) {
+  //       callback(null, {
+  //         guid: o.metadata.guid,
+  //         name: o.entity.name,
+  //         spaces: []
+  //       })
+  //     }, function(err, orgs) {
+  //       resolve(orgs);
+  //     })
+  //   });
+  // }
 
-          var spaceInfo = {
-            name: space.entity.name,
-            guid: space.metadata.guid,
-          }
-          org.spaces.push(spaceInfo);
-        });
-        resolve(orgs);
-      });
-    })
-  }
+  // const getSpaces = (orgs) => {
+  //   return new Promise((resolve, reject) => {
+  //     CloudFoundrySpaces.getSpaces().then(function(spaces) {
+  //       spaces.resources.forEach((space) => {
+  //         let org = orgs.find(function(o) {
+  //           return o.guid === space.entity.organization_guid
+  //         });
+  //
+  //         var spaceInfo = {
+  //           name: space.entity.name,
+  //           guid: space.metadata.guid,
+  //         }
+  //         org.spaces.push(spaceInfo);
+  //       });
+  //       resolve(orgs);
+  //     });
+  //   })
+  // }
 
   const getAppInfo = (orgs) => {
     return new Promise((resolve, reject) => {
