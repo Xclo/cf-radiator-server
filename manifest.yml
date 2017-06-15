@@ -1,9 +1,10 @@
 ---
 applications:
-- name: rjain-cf-node-dash 
+- name: cf-radiator-server
   memory: 512MB
   disk_quota: 512MB
-  instances: 1
+  instances: 3
   command: node ./index.js
-  host: rjain-cf-node-dash
-  path: .  
+  host: cf-radiator-server
+  buildpack: nodejs_buildpack
+  path: .
