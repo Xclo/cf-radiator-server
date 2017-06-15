@@ -12,15 +12,18 @@ const CloudFoundry = new CF();
 var Login = require('../services/Login');
 Login = new Login();
 
-var ORGS = {};
-var SPACES = {};
-
-
 module.exports = function (express) {
 
   var router = express.Router();
   router.use(bodyParser.json());
   router.use(bodyParser.urlencoded({ extended: false }));// parse application/x-www-form-urlencoded
+
+  router.get('/foundationInfo', (req, res) => {
+    let infoUrl = `${req.headers.api}/v2/info`
+    axios.get(infoUrl).then((response) => {
+      res.json(response.data)
+    })
+  })
 
   router.get('/apps', validateApiToken, (req, res) => {
     const api = req.api;
@@ -254,6 +257,20 @@ module.exports = function (express) {
                 let app = response.data
                 if (app.routes.length > 0) {
                   app.route = `https://${response.data.routes[0].host}.${response.data.routes[0].domain.name}`
+                }
+
+                app.bound_services = [];
+                if (app.services.length > 0) {
+                  response.data.services.forEach((service) => {
+                    let s = {
+                      name: service.name
+                    }
+                    if (service.service_plan) {
+                      s.plan = service.service_plan.name,
+                      s.service = service.service_plan.service.label
+                    }
+                    app.bound_services.push(s);
+                  });
                 }
                 // console.log(app)
 
